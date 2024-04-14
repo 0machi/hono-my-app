@@ -1,0 +1,32 @@
+name: Deploy
+
+on:
+    push:
+      branches:
+        - main
+    pull_request:
+
+jobs:
+  deploy:
+    timeout-minutes: 5
+    runs-on: ubuntu-latest
+    environment: ${{ github.ref_name == 'main' && 'prod' || 'stg' }}
+    permissions:
+      contents: 'read'
+    steps:
+      - uses: actions/checkout@v4
+      - name: Deploy
+        id: deploy
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          environment: ${{ github.ref_name != 'main' && 'stg' || '' }}
+          secrets: |
+            ENV
+        env:
+          ENV: ${{ secrets.ENV }}
+      - name: print deployment-url
+        env:
+          DEPLOYMENT_URL: ${{ steps.deploy.outputs.deployment-url }}
+        run: echo $DEPLOYMENT_URL
